@@ -1,0 +1,1117 @@
+/* ==========================================================================
+   Weather Forecast App — style.css
+   Vanilla HTML/CSS/JS build with full feature parity to the React version
+   (skycast-react): day/night hero backdrop, AQI stat, AI Insight card, SVG
+   weather icons, and the floating chat widget.
+   ========================================================================== */
+
+:root {
+  /* Sky gradient */
+  --blue-deep: #1558C9;
+  --blue-mid: #2E7BE8;
+  --blue-light: #6BAEF5;
+  --blue-pale: #EAF3FE;
+
+  /* Night sky (reused from the landing splash) */
+  --night-deep: #0B1E3F;
+  --night-mid: #12305C;
+  --night-light: #1B4A8C;
+
+  /* Brand accent */
+  --yellow: #FFC53D;
+
+  /* Text / neutrals */
+  --ink: #12202E;
+  --muted: #8494A3;
+  --muted-2: #9AA7B2;
+  --border: #E7ECF2;
+  --bg-soft: #F6F9FC;
+  --white: #FFFFFF;
+
+  /* Weather icon set — sun-based icons use --yellow, everything else
+     (cloud/rain/snow/fog) uses this muted blue-grey so icons read as one
+     family with the sky gradient instead of flat grey */
+  --icon-muted: #7C93B5;
+
+  /* Alert (distinct from brand yellow — reads as urgent) */
+  --alert-bg: #FFF4E8;
+  --alert-border: #F2B366;
+  --alert-text: #7A3E10;
+  --alert-icon: #C6621A;
+
+  /* Sunrise / sunset cards */
+  --sunrise-bg: #FFF9EC;
+  --sunrise-border: #F6E4B4;
+  --sunrise-text: #9A7A2E;
+  --sunrise-icon: #C6871A;
+  --sunset-bg: #EEF2FB;
+  --sunset-border: #D7E0F5;
+  --sunset-text: #5E6BA8;
+  --sunset-icon: #4A5BA6;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
+
+  --sky-band-height: 640px;
+}
+
+/* ---------- Reset ---------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background-color: var(--white);
+}
+h1, h2, h3, p { margin: 0; }
+button { font-family: inherit; cursor: pointer; }
+input { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Respect the [hidden] attribute — never let a reset undo it */
+[hidden] { display: none !important; }
+
+/* Focus visibility for keyboard users */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--white);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   App shell + day/night sky gradient
+   The blue "sky" band lives on the `.app` root, sized to a fixed height, so
+   the topbar, alert bar and hero all sit on ONE continuous gradient without
+   each needing its own background. `.app--night` swaps it to the night
+   colors when the searched city is currently after sunset / before sunrise.
+   ========================================================================== */
+.app {
+  max-width: 1440px;
+  margin: 0 auto;
+  background-image: linear-gradient(
+    165deg,
+    var(--blue-deep) 0%,
+    var(--blue-mid) 45%,
+    var(--blue-light) 78%,
+    var(--blue-pale) 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 100% var(--sky-band-height);
+}
+.app--night {
+  background-image: linear-gradient(
+    165deg,
+    var(--night-deep) 0%,
+    var(--night-mid) 55%,
+    var(--night-light) 100%
+  );
+}
+
+/* ==========================================================================
+   Topbar
+   ========================================================================== */
+.topbar {
+  padding: 32px 56px 0;
+}
+.topbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.brand__mark {
+  font-size: 18px;
+  color: var(--yellow);
+  line-height: 1;
+}
+.brand__name {
+  font-family: var(--font-sans);
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--white);
+  letter-spacing: -0.01em;
+}
+
+.search-form {
+  flex-grow: 1;
+  max-width: 460px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.38);
+  border-radius: 999px;
+  padding: 6px 6px 6px 18px;
+}
+.search-form__input {
+  flex-grow: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--white);
+  font-size: 14px;
+}
+.search-form__input::placeholder {
+  color: rgba(255,255,255,0.75);
+}
+.search-form__submit {
+  background: var(--white);
+  color: var(--blue-deep);
+  border: none;
+  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+.search-form__submit:hover { transform: scale(1.06); }
+
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255,255,255,0.34);
+  background: rgba(255,255,255,0.16);
+  color: var(--white);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 44px;
+  transition: background 0.15s ease;
+}
+.btn:hover { background: rgba(255,255,255,0.26); }
+.btn__icon { font-size: 13px; line-height: 1; }
+
+.btn--unit {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.unit-divider { opacity: 0.6; margin: 0 2px; }
+
+.btn--notify {
+  background: var(--white);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  align-self: flex-start;
+}
+.btn--notify:hover { background: var(--bg-soft); }
+
+/* ==========================================================================
+   Status / alert zone
+   ========================================================================== */
+.status-zone {
+  padding: 20px 56px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.status-msg {
+  color: var(--white);
+  font-size: 14px;
+  min-height: 1.2em;
+}
+
+.alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--alert-bg);
+  border: 1px solid var(--alert-border);
+  border-radius: 14px;
+  padding: 14px 20px;
+  color: var(--alert-text);
+}
+.alert-banner__icon {
+  color: var(--alert-icon);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.alert-banner__text {
+  font-size: 14px;
+  font-weight: 600;
+  flex-grow: 1;
+}
+
+/* ==========================================================================
+   Hero — current conditions, sits on the sky gradient
+   ========================================================================== */
+main { display: block; }
+
+.hero {
+  position: relative;
+  padding: 36px 56px 0;
+  overflow: visible;
+}
+
+.hero__backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.hero__sky,
+.hero__moon {
+  position: absolute;
+  top: 10px;
+  right: 100px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+}
+.hero__sky {
+  background: var(--yellow);
+  box-shadow:
+    0 0 0 26px rgba(255,197,61,0.14),
+    0 0 0 52px rgba(255,197,61,0.07);
+}
+.hero__moon {
+  background: var(--blue-pale);
+  box-shadow:
+    0 0 0 22px rgba(234,243,254,0.10),
+    0 0 0 44px rgba(234,243,254,0.05),
+    inset -30px -12px 0 0 var(--night-deep);
+}
+.hero__stars { position: absolute; inset: 0; }
+.hero__star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--white);
+  opacity: 0.7;
+}
+.hero__horizon {
+  position: absolute;
+  top: 280px;
+  left: -60px;
+  width: 420px;
+  height: 120px;
+  border-radius: 60px;
+  background: rgba(255,255,255,0.12);
+}
+
+.hero__content {
+  position: relative;
+  z-index: 1;
+}
+
+.hero__location {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.88);
+}
+
+.hero__primary {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.hero__temp {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(72px, 13vw, 196px);
+  line-height: 0.86;
+  color: var(--white);
+  letter-spacing: -0.03em;
+  animation: temp-in 0.6s ease-out both;
+}
+@keyframes temp-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.hero__condition {
+  padding-bottom: 20px;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--white);
+}
+
+/* Stat cards — pulled up to overlap the sky/white seam */
+.hero__meta {
+  list-style: none;
+  display: flex;
+  gap: 16px;
+  padding: 0;
+  margin: 32px 0 0;
+  position: relative;
+  z-index: 2;
+  flex-wrap: wrap;
+}
+.meta-stat {
+  flex: 1 1 160px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px 22px;
+  box-shadow: 0 12px 28px rgba(18,32,46,0.09);
+}
+.meta-stat__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.meta-stat__value {
+  display: block;
+  font-size: 24px;
+  font-weight: 800;
+  margin-top: 6px;
+  color: var(--ink);
+}
+.meta-stat__sub {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+  color: var(--muted-2);
+}
+
+/* Sunrise / sunset row */
+.hero__sun {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  padding-bottom: 44px;
+}
+.sun-stat {
+  flex: 1 1 200px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-radius: 18px;
+  padding: 18px 22px;
+}
+.sun-stat--rise {
+  background: var(--sunrise-bg);
+  border: 1px solid var(--sunrise-border);
+}
+.sun-stat--set {
+  background: var(--sunset-bg);
+  border: 1px solid var(--sunset-border);
+}
+.sun-stat__icon {
+  font-size: 20px;
+  line-height: 1;
+}
+.sun-stat--rise .sun-stat__icon { color: var(--sunrise-icon); }
+.sun-stat--set .sun-stat__icon { color: var(--sunset-icon); }
+.sun-stat__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.sun-stat--rise .sun-stat__label { color: var(--sunrise-text); }
+.sun-stat--set .sun-stat__label { color: var(--sunset-text); }
+.sun-stat__value {
+  display: block;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   AI Insight — visually distinct from the stat cards on purpose, so it
+   reads as a separate, clearly-labeled feature rather than core forecast
+   data.
+   ========================================================================== */
+.ai-insight {
+  padding: 0 56px;
+  margin-top: 8px;
+}
+.ai-insight__card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: linear-gradient(135deg, #FFFDF6 0%, var(--bg-soft) 100%);
+  border: 1px solid var(--sunrise-border);
+  border-radius: 18px;
+  padding: 18px 22px;
+}
+.ai-insight__icon {
+  flex-shrink: 0;
+  color: var(--yellow);
+  margin-top: 2px;
+}
+.ai-insight__label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sunrise-text);
+  margin-bottom: 6px;
+}
+.ai-insight__text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.ai-insight__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.ai-insight__skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--border);
+  animation: aiSkeletonPulse 1.2s ease-in-out infinite;
+}
+.ai-insight__skeleton-line:nth-child(2) { width: 70%; }
+@keyframes aiSkeletonPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ==========================================================================
+   Weather icons — used in the hourly strip and daily list. Sun-based icons
+   use --yellow, everything else uses --icon-muted.
+   ========================================================================== */
+.weather-icon {
+  display: block;
+}
+
+/* ==========================================================================
+   Hourly forecast
+   ========================================================================== */
+.hourly-forecast,
+.daily-forecast {
+  padding: 0 56px;
+  margin-top: 44px;
+}
+
+.section-heading {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.hourly-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+}
+.hourly-scroll::-webkit-scrollbar { height: 6px; }
+.hourly-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.hour-card {
+  flex: 0 0 92px;
+  scroll-snap-align: start;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 10px;
+  text-align: center;
+}
+.hour-card__time {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.hour-card__icon {
+  margin: 10px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hour-card__temp {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.hour-card__precip {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ==========================================================================
+   Daily forecast
+   ========================================================================== */
+.daily-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.day-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 4px;
+  border-bottom: 1px solid var(--bg-soft);
+}
+.day-row__name {
+  width: 64px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.day-row__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.day-row__condition {
+  flex-grow: 1;
+  color: var(--muted);
+  font-size: 14px;
+  min-width: 90px;
+}
+.day-row__precip {
+  width: 44px;
+  text-align: right;
+  color: var(--muted-2);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.day-row__lo {
+  width: 32px;
+  text-align: right;
+  color: var(--muted-2);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.day-row__range {
+  width: 110px;
+  height: 5px;
+  background: var(--bg-soft);
+  border-radius: 3px;
+  position: relative;
+  flex-shrink: 0;
+}
+.day-row__range-fill {
+  position: absolute;
+  top: 0; bottom: 0;
+  background: linear-gradient(90deg, var(--blue-deep), var(--yellow));
+  border-radius: 3px;
+}
+.day-row__hi {
+  width: 32px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+.site-footer {
+  padding: 40px 56px 32px;
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-2);
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   Motion
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .hero__temp { animation: none; }
+  .search-form__submit { transition: none; }
+  .ai-insight__skeleton-line { animation: none; }
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 860px) {
+  :root { --sky-band-height: 720px; }
+
+  .topbar { padding: 24px 20px 0; }
+  .topbar__inner { flex-wrap: wrap; }
+  .search-form { order: 3; max-width: 100%; flex-basis: 100%; }
+  .topbar__actions { gap: 8px; }
+  .btn__label { display: none; } /* icons + unit text stay, labels drop on small screens */
+  .btn--unit .unit-divider,
+  .btn--unit .unit { display: inline; } /* keep °C/°F fully visible, it's short */
+
+  .status-zone { padding: 16px 20px 0; }
+  .hero { padding: 28px 20px 0; }
+  .hero__sky, .hero__moon { width: 90px; height: 90px; right: 20px; top: 0; }
+  .hero__meta { margin-top: 24px; }
+  .meta-stat { flex: 1 1 45%; padding: 14px 16px; }
+  .hero__sun { flex-direction: column; padding-bottom: 32px; }
+
+  .ai-insight { padding: 0 20px; }
+  .hourly-forecast, .daily-forecast { padding: 0 20px; margin-top: 32px; }
+  .site-footer { padding: 32px 20px 24px; }
+
+  .day-row__condition { min-width: 70px; font-size: 13px; }
+  .day-row__range { width: 70px; }
+}
+
+@media (max-width: 480px) {
+  .meta-stat { flex: 1 1 100%; }
+}
+
+/* ==========================================================================
+   Chat widget
+   ========================================================================== */
+.chat-widget {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+}
+
+.chat-widget__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep));
+  color: var(--white);
+  font-size: 24px;
+  line-height: 1;
+  box-shadow: 0 12px 28px rgba(18, 32, 46, 0.28);
+  transition: transform 0.15s ease;
+}
+.chat-widget__button:hover { transform: scale(1.06); }
+
+.chat-widget__panel {
+  position: absolute;
+  right: 0;
+  bottom: 72px;
+  width: 360px;
+  height: 480px;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 20px 44px rgba(18, 32, 46, 0.22);
+  overflow: hidden;
+  animation: chatPanelIn 0.18s ease-out both;
+}
+@keyframes chatPanelIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.chat-widget__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-soft);
+}
+.chat-widget__title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.chat-widget__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  transition: background 0.15s ease;
+}
+.chat-widget__close:hover { background: var(--border); }
+
+.chat-widget__messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+.chat-widget__empty {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  margin: auto 8px;
+}
+
+.chat-widget__message {
+  max-width: 84%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.chat-widget__message--user {
+  align-self: flex-end;
+  background: var(--blue-mid);
+  color: var(--white);
+  border-bottom-right-radius: 4px;
+}
+.chat-widget__message--assistant {
+  align-self: flex-start;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  border-bottom-left-radius: 4px;
+}
+.chat-widget__message--notice {
+  align-self: center;
+  max-width: 100%;
+  background: transparent;
+  color: var(--muted-2);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  padding: 2px 10px;
+}
+.chat-widget__message--error {
+  align-self: flex-start;
+  background: var(--alert-bg);
+  border: 1px solid var(--alert-border);
+  color: var(--alert-text);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-widget__typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 14px;
+}
+.chat-widget__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted-2);
+  animation: chatTypingDot 1.1s ease-in-out infinite;
+}
+.chat-widget__dot:nth-child(2) { animation-delay: 0.15s; }
+.chat-widget__dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes chatTypingDot {
+  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+
+.chat-widget__form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--white);
+}
+.chat-widget__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--bg-soft);
+}
+.chat-widget__input::placeholder { color: var(--muted); }
+
+.chat-widget__send {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--white);
+  background: var(--blue-deep);
+}
+.chat-widget__send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-widget__button { transition: none; }
+  .chat-widget__panel { animation: none; }
+  .chat-widget__dot { animation: none; }
+}
+
+@media (max-width: 480px) {
+  .chat-widget { right: 16px; bottom: 16px; }
+  .chat-widget__panel {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 84px;
+    width: auto;
+    height: min(70vh, 480px);
+  }
+}
+
+/* ==========================================================================
+   Landing / Splash
+   Full-viewport intro overlay that plays once on first load, then fades
+   into the app.
+   ========================================================================== */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #0B1E3F; /* base fallback under the animated sky layers */
+  transition: opacity 0.6s ease;
+}
+.splash--hiding {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- Sky: two stacked gradient layers cross-fading night -> day ---- */
+.splash__sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.splash__sky-layer {
+  position: absolute;
+  inset: 0;
+}
+.splash__sky-layer--night {
+  background: linear-gradient(180deg, #0B1E3F 0%, #12305C 60%, #1B4A8C 100%);
+}
+.splash__sky-layer--day {
+  background: linear-gradient(
+    165deg,
+    var(--blue-deep) 0%,
+    var(--blue-mid) 45%,
+    var(--blue-light) 78%,
+    var(--blue-pale) 100%
+  );
+  opacity: 0;
+  animation: splashDayReveal 3.2s ease-in-out forwards;
+}
+@keyframes splashDayReveal {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---- Stars ---- */
+.splash__stars {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.splash__star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--white);
+  opacity: 0.75;
+  animation: splashStarsFade 3.2s ease-in forwards;
+}
+.splash__star:nth-child(3n) { width: 3px; height: 3px; }
+@keyframes splashStarsFade {
+  from { opacity: 0.75; }
+  to   { opacity: 0; }
+}
+
+/* ---- Horizon + sun ---- */
+.splash__horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 24px 1px rgba(255, 255, 255, 0.12);
+  z-index: 1;
+}
+.splash__sun {
+  position: absolute;
+  bottom: 18%;
+  left: 50%;
+  width: 160px;
+  height: 160px;
+  margin-left: -80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--yellow) 0%, rgba(255, 197, 61, 0.55) 55%, rgba(255, 197, 61, 0) 75%);
+  box-shadow:
+    0 0 60px 30px rgba(255, 197, 61, 0.14),
+    0 0 130px 60px rgba(255, 197, 61, 0.07);
+  z-index: 2;
+  opacity: 0;
+  transform: translateY(180px);
+  animation: splashSunRise 2.4s cubic-bezier(0.22, 0.9, 0.32, 1) 0.5s forwards;
+}
+@keyframes splashSunRise {
+  from { opacity: 0; transform: translateY(180px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Wordmark + tagline ---- */
+.splash__content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 24px;
+}
+.splash__wordmark {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(48px, 9vw, 108px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.splash__letter {
+  display: inline-block;
+  color: var(--white);
+  opacity: 0;
+  transform: translateY(24px);
+  animation: splashLetterUp 0.6s ease forwards;
+  animation-delay: calc(0.9s + (var(--i) * 0.08s));
+}
+.splash__letter--accent {
+  color: var(--yellow);
+}
+@keyframes splashLetterUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+.splash__tagline {
+  margin-top: 18px;
+  font-family: var(--font-sans);
+  font-size: clamp(15px, 1.6vw, 18px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  opacity: 0;
+  animation: splashFadeIn 0.8s ease forwards;
+  animation-delay: 1.6s;
+}
+@keyframes splashFadeIn {
+  to { opacity: 1; }
+}
+
+/* ---- Progress bar ---- */
+.splash__progress-wrap {
+  position: absolute;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(280px, 70vw);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  animation: splashFadeIn 0.6s ease forwards;
+  animation-delay: 0.3s;
+}
+.splash__progress {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.2);
+}
+.splash__progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--yellow);
+  animation: splashProgressFill 4s linear forwards;
+}
+@keyframes splashProgressFill {
+  to { width: 100%; }
+}
+.splash__progress-label {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* ---- Reduced motion: skip straight to the finished state ---- */
+@media (prefers-reduced-motion: reduce) {
+  .splash--reduced .splash__sky-layer--day,
+  .splash--reduced .splash__letter,
+  .splash--reduced .splash__tagline,
+  .splash--reduced .splash__progress-wrap {
+    animation: none;
+    opacity: 1;
+  }
+  .splash--reduced .splash__letter {
+    transform: none;
+  }
+  .splash--reduced .splash__star {
+    animation: none;
+    opacity: 0;
+  }
+  .splash--reduced .splash__sun {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .splash--reduced .splash__progress-fill {
+    animation: none;
+    width: 100%;
+  }
+}
