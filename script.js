@@ -4,11 +4,13 @@
    Groq for the AI Insight card and chat widget. No build step, no
    framework — plain DOM updates driven by a small app-state object.
 
-   API keys live in config.js (gitignored, loaded before this file) — see
-   config.example.js and README.md for setup. This is still a static site
-   with no backend, so whatever key is configured is visible to anyone who
-   views the network tab; config.js only keeps real keys out of version
-   control, it doesn't hide them from the browser.
+   API keys live in config.js for local development (gitignored, loaded
+   before this file) — see config.example.js and README.md for setup. When
+   config.js has no keys (e.g. a production build where config.js is never
+   deployed), API calls go through the /api/owm and /api/groq Vercel
+   serverless proxies instead, which hold the real keys server-side via
+   OWM_KEY/GROQ_KEY environment variables — see api/owm.js and api/groq.js.
+   Only the local-config.js path ever puts a key in the browser.
    ========================================================================== */
 
 (() => {
@@ -21,10 +23,12 @@
   const OWM_BASE = "https://api.openweathermap.org";
   const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
   const GROQ_MODEL = "openai/gpt-oss-20b";
+  // Whether we have a *local* key to call the provider directly. Without one
+  // we still attempt every request — just routed through our own /api/*
+  // proxy, which may have its own server-side key. hasOwmKey/hasGroqKey only
+  // decide which of those two paths to take, never whether to attempt at all.
   const hasOwmKey = Boolean(OPENWEATHER_API_KEY);
   const hasGroqKey = Boolean(GROQ_API_KEY);
-  const MISSING_OWM_KEY_MESSAGE =
-    "Missing OpenWeatherMap API key — copy config.example.js to config.js and add your own key (see README.md).";
 
   /* ---------- Element refs ---------- */
   const appRoot = document.getElementById("appRoot");
@@ -271,9 +275,22 @@
     return res.json();
   }
 
+  /* With a local key, call OpenWeatherMap directly (api/owm.js's allowlisted
+     `path` values are exactly these endpoint paths, so both modes stay in
+     sync). Without one, go through /api/owm instead — it appends its own
+     server-side key, so none is needed here. */
+  function owmUrl(path, params) {
+    const qs = new URLSearchParams(params);
+    if (hasOwmKey) {
+      qs.set("appid", OPENWEATHER_API_KEY);
+      return `${OWM_BASE}/${path}?${qs.toString()}`;
+    }
+    qs.set("path", path);
+    return `/api/owm?${qs.toString()}`;
+  }
+
   async function geocodeCity(name) {
-    const url = `${OWM_BASE}/geo/1.0/direct?q=${encodeURIComponent(name)}&limit=1&appid=${OPENWEATHER_API_KEY}`;
-    const json = await fetchJson(url);
+    const json = await fetchJson(owmUrl("geo/1.0/direct", { q: name, limit: 1 }));
     if (!json || json.length === 0) throw new Error("City not found");
     const r = json[0];
     return {
@@ -284,8 +301,7 @@
   }
 
   async function fetchAirPollution(lat, lon) {
-    const url = `${OWM_BASE}/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`;
-    const json = await fetchJson(url);
+    const json = await fetchJson(owmUrl("data/2.5/air_pollution", { lat, lon }));
     const entry = json.list && json.list[0];
     if (!entry) return null;
     return { aqi: entry.main.aqi, pm25: entry.components.pm2_5 };
@@ -318,10 +334,10 @@
   }
 
   async function fetchWeatherBundle(lat, lon, label) {
-    const query = `lat=${lat}&lon=${lon}&units=metric&appid=${OPENWEATHER_API_KEY}`;
+    const params = { lat, lon, units: "metric" };
     const [current, forecast, air] = await Promise.all([
-      fetchJson(`${OWM_BASE}/data/2.5/weather?${query}`),
-      fetchJson(`${OWM_BASE}/data/2.5/forecast?${query}`),
+      fetchJson(owmUrl("data/2.5/weather", params)),
+      fetchJson(owmUrl("data/2.5/forecast", params)),
       fetchAirPollution(lat, lon),
     ]);
 
@@ -357,23 +373,19 @@
   }
 
   /* ---------- Groq (AI Insight + chat) ---------- */
+  /* With a local key, call Groq directly. Without one, go through /api/groq
+     instead — it holds its own server-side key, forces its own model, and
+     caps max_tokens/message count itself, so this just sends the messages. */
   async function callGroq(messages, { temperature, maxTokens }) {
-    if (!GROQ_API_KEY) throw new Error("Missing Groq API key");
+    const url = hasGroqKey ? GROQ_URL : "/api/groq";
+    const headers = { "Content-Type": "application/json" };
+    const body = { temperature, max_tokens: maxTokens, reasoning_effort: "low", messages };
+    if (hasGroqKey) {
+      headers.Authorization = `Bearer ${GROQ_API_KEY}`;
+      body.model = GROQ_MODEL;
+    }
 
-    const res = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        temperature,
-        max_tokens: maxTokens,
-        reasoning_effort: "low",
-        messages,
-      }),
-    });
+    const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
 
     if (!res.ok) throw new Error("Groq request failed");
     const json = await res.json();
@@ -604,7 +616,6 @@
   }
 
   async function loadAiInsight() {
-    if (!hasGroqKey) return;
     const token = ++aiInsightAbort;
     renderAiInsight("loading");
 
@@ -717,29 +728,30 @@
     chatToggleBtn.innerHTML = "<span aria-hidden=\"true\">&#128172;</span>";
   }
 
-  if (hasGroqKey) {
-    chatWidget.hidden = false;
+  // Always shown: without a local Groq key we still try /api/groq, which may
+  // have its own server-side key. Per-message failures already surface as a
+  // friendly in-chat error bubble (see sendChatMessage's catch block).
+  chatWidget.hidden = false;
 
-    chatToggleBtn.addEventListener("click", () => {
-      if (chatIsOpen) closeChat();
-      else openChat();
-    });
-    chatCloseBtn.addEventListener("click", closeChat);
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && chatIsOpen) closeChat();
-    });
-    chatInput.addEventListener("input", updateChatSendState);
-    chatForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const value = chatInput.value;
-      if (!value.trim() || chatIsLoading) return;
-      chatInput.value = "";
-      updateChatSendState();
-      sendChatMessage(value);
-    });
+  chatToggleBtn.addEventListener("click", () => {
+    if (chatIsOpen) closeChat();
+    else openChat();
+  });
+  chatCloseBtn.addEventListener("click", closeChat);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && chatIsOpen) closeChat();
+  });
+  chatInput.addEventListener("input", updateChatSendState);
+  chatForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const value = chatInput.value;
+    if (!value.trim() || chatIsLoading) return;
+    chatInput.value = "";
+    updateChatSendState();
+    sendChatMessage(value);
+  });
 
-    renderChatMessages();
-  }
+  renderChatMessages();
 
   /* Resets with a short notice whenever the searched city changes, so the
      assistant's context never silently goes stale mid-conversation. */
@@ -751,15 +763,11 @@
     if (previousCity === undefined || city === previousCity || city === null) return;
 
     chatMessageList = [{ id: makeChatId(), role: "notice", content: `Now showing weather for ${city}.` }];
-    if (hasGroqKey) renderChatMessages();
+    renderChatMessages();
   }
 
   /* ---------- Load flows ---------- */
   async function loadCity(name) {
-    if (!hasOwmKey) {
-      setStatus(MISSING_OWM_KEY_MESSAGE);
-      return;
-    }
     setStatus(`Searching for "${name}"…`);
     try {
       const place = await geocodeCity(name);
@@ -781,10 +789,6 @@
   }
 
   async function loadByCoords(lat, lon) {
-    if (!hasOwmKey) {
-      setStatus(MISSING_OWM_KEY_MESSAGE);
-      return;
-    }
     setStatus("Loading weather for your location…");
     try {
       weatherData = await fetchWeatherBundle(lat, lon, null);
@@ -848,10 +852,6 @@
      Try geolocation silently first; if denied/unavailable, fall back to a
      friendly prompt instead of leaving the hero area empty. */
   function init() {
-    if (!hasOwmKey) {
-      setStatus(MISSING_OWM_KEY_MESSAGE);
-      return;
-    }
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => loadByCoords(pos.coords.latitude, pos.coords.longitude),
